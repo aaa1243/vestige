@@ -1,0 +1,6 @@
+*.hpp linguist-language=C++
+*.cpp linguist-language=C++
+tests/*.py linguist-detectable=false
+tests/*.sh linguist-detectable=false
+CMakeLists.txt linguist-detectable=false
+cmake/* linguist-detectable=false

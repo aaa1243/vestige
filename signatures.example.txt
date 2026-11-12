@@ -1,0 +1,16 @@
+# Extra signatures for ForensicScanner. Use with:  ForensicScanner.exe --sigs signatures.txt
+# One per line:  type|value|label     Lines starting with # are ignored.
+#
+#   name     file or process name of a known cheat or tool (short names only match whole words)
+#   weak     generic word, only ever shown as a lead
+#   content  text inside a file (class paths inside jars work well)
+#   memory   text searched for in the running game's memory and in game logs
+#   domain   cheat website (browser history, DNS cache, download records)
+#   driver   driver file name used to load kernel cheats
+#   hash     SHA-256 of a known cheat file
+#
+# Examples:
+# name|examplecheat|Example Cheat
+# memory|com/example/cheat|Example Cheat
+# domain|examplecheat.gg|Example Cheat
+# hash|0000000000000000000000000000000000000000000000000000000000000000|Example Cheat v1 loader

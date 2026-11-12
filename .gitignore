@@ -1,0 +1,11 @@
+build/
+build-*/
+out.json
+out.html
+report.json
+report.html
+# never commit memory dumps
+*.raw
+*.mem
+*.dmp
+*.vmem

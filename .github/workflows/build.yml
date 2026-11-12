@@ -1,0 +1,93 @@
+name: Build and test
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cmake -S . -B build && cmake --build build -j4
+      - name: Self-test (fake cheated game)
+        run: sudo bash tests/linux_selftest.sh build/ForensicScanner
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cmake -S . -B build && cmake --build build -j4
+      - name: Self-test (fake game with an agent flag)
+        run: |
+          mkdir -p /tmp/fakegame
+          echo 'int sleep(unsigned); int main(void){ sleep(120); return 0; }' | cc -x c - -o /tmp/fakegame/java
+          /tmp/fakegame/java -javaagent:/tmp/vape.jar &
+          sleep 2
+          sudo ./build/ForensicScanner --json out.json
+          python3 tests/check_run.py out.json game_cmdline:DETECTION game_cmdline:WARNING
+
+  # The exe that gets released. Cross-compiled with MinGW, statically linked,
+  # so it runs on any 64-bit Windows 10/11 without installing anything.
+  windows-exe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install MinGW
+        run: sudo apt-get update && sudo apt-get install -y g++-mingw-w64-x86-64
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-cross.cmake
+          cmake --build build -j4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            build/ForensicScanner.exe
+            build/javaw.exe
+      - name: Publish release (only on version tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/ForensicScanner.exe
+
+  # Runs that exe on real Windows against a fake game that makes injection
+  # artifacts inside its own process (tests/fakegame.cpp).
+  windows-test:
+    needs: windows-exe
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: build
+      - name: Self-test
+        shell: pwsh
+        run: |
+          Copy-Item "$env:SystemRoot\System32\cmd.exe" "$env:TEMP\Slinky.exe"
+          Start-Process "$env:TEMP\Slinky.exe" -ArgumentList '/c','ping -n 120 127.0.0.1 >nul' -WindowStyle Hidden
+          Start-Process .\build\javaw.exe -ArgumentList 'net.minecraft.client.main.Main','120' -WindowStyle Hidden
+          Start-Sleep -Seconds 6
+          .\build\ForensicScanner.exe --no-pause --json out.json --html out.html
+          python tests\check_run.py out.json `
+            running_processes:DETECTION `
+            "game_modules:DETECTION:Injected program image" `
+            "game_modules:DETECTION:Known cheat module" `
+            game_threads:DETECTION `
+            game_unloaded:DETECTION `
+            game_hooks:INTEGRITY game_handles:INTEGRITY game_strings:INTEGRITY game_load_times:INTEGRITY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-test-report
+          path: |
+            out.json
+            out.html
