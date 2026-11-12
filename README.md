@@ -16,7 +16,7 @@ It never writes to the PC except for its own report, never goes online, never to
 
 Latest Windows exe (always the newest release):
 
-    https://github.com/aaa1243/forensic-scanner/releases/latest/download/Vestige.exe
+    https://github.com/aaa1243/vestige/releases/latest/download/Vestige.exe
 
 Windows will show a SmartScreen warning because the exe is not signed. Click "More info" then "Run anyway".
 
