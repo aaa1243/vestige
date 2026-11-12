@@ -30,7 +30,7 @@ void print_console(const Context& ctx, double seconds) {
     const char* reset = color ? "\033[0m" : "";
 
     printf("============================================================\n");
-    printf("  Forensic Scanner\n");
+    printf("  Vestige\n");
     printf("============================================================\n");
     printf("  System: %s   admin/root: %s   boot: %s\n", ctx.os.c_str(), ctx.admin ? "yes" : "NO",
            fmt_time(ctx.boot_time).c_str());
@@ -104,7 +104,7 @@ std::string to_html(const Context& ctx, double started) {
     std::string notes;
     for (const std::string& n : ctx.notes) notes += "<li>" + html_escape(n) + "</li>";
 
-    std::string h = R"HTML(<!DOCTYPE html><html><head><meta charset="utf-8"><title>Forensic Scanner report</title>
+    std::string h = R"HTML(<!DOCTYPE html><html><head><meta charset="utf-8"><title>Vestige report</title>
 <style>
 body{margin:0;background:#0b0c0f;color:#e6e7ea;font:15px/1.45 system-ui,Segoe UI,sans-serif}
 .wrap{display:flex;gap:28px;max-width:1280px;margin:0 auto;padding:28px}

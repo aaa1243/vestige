@@ -5,3 +5,4 @@ tests/*.sh linguist-detectable=false
 CMakeLists.txt linguist-detectable=false
 cmake/* linguist-detectable=false
 # language stats
+third_party/** linguist-vendored

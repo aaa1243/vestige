@@ -1,6 +1,6 @@
-# Forensic Scanner
+# Vestige
 
-A read-only screenshare scanner for Minecraft, written in C++. One exe on Windows, one binary on macOS and Linux. It looks at the running game and at what the system recorded since boot, then sorts everything into three groups like the big SS tools do:
+A read-only screenshare scanner for Minecraft, written in C++. One exe on Windows with a window to click through the results, one command line binary on macOS and Linux. It looks at the running game and at what the system recorded since boot, then sorts everything into three groups like the big SS tools do:
 
 | Group | What it means |
 |---|---|
@@ -10,23 +10,34 @@ A read-only screenshare scanner for Minecraft, written in C++. One exe on Window
 
 Every finding also gets a tag: **In game** (inside the running game right now), **Boot** (happened since the last boot) or **Out of instance** (older, or outside the game).
 
-It never writes to the PC except for its own report, never touches accounts or tokens, and never injects into anything. Findings are leads. Confirm by hand before any ban.
+It never writes to the PC except for its own report, never goes online, never touches accounts or tokens, and never injects into anything. Findings are leads. Confirm by hand before any ban.
 
 ## Download
 
 Latest Windows exe (always the newest release):
 
-    https://github.com/aaa1243/forensic-scanner/releases/latest/download/ForensicScanner.exe
+    https://github.com/aaa1243/forensic-scanner/releases/latest/download/Vestige.exe
 
 Windows will show a SmartScreen warning because the exe is not signed. Click "More info" then "Run anyway".
 
 ## How to use it
 
-**Windows:** have the player open the game they were playing on, then double click `ForensicScanner.exe` and accept the admin prompt. The report is printed in the window and saved to `C:\SSTools\ForensicScanner\report.html` and `report.json`.
+**Windows:** have the player open the game they were playing on, then double click `Vestige.exe` and accept the admin prompt. A window opens. Press **Scan**.
 
-**macOS / Linux:** build it (below), then
+- The left side has the three groups with live counts. Click one to show only that group, click it again to show everything.
+- The chips (All / In game / Boot / Out of instance) filter by tag, and the search box looks in the title, detail, evidence and check name.
+- Click a finding to open it. The evidence has a Copy button.
+- **Deep scan** is the same as `--deep` and **Signature file** is the same as `--sigs`.
+- When the scan is done the report is saved to `C:\SSTools\ForensicScanner\report.html` and `report.json`, and there are buttons to open the report or the folder. **Notes** lists the checks that were skipped or limited.
+- **Scan again** restarts Vestige, so a second scan never reuses anything from the first.
 
-    sudo ./build/ForensicScanner --out ./report
+A console window flashes for a moment when you double click the exe. That is normal: the same exe is also the command line tool.
+
+**Windows, command line:** start it with any option and it runs in the terminal like before, with no window. For example `Vestige.exe --out C:\SSTools\ForensicScanner`, or `Vestige.exe --no-pause --json out.json` in a script.
+
+**macOS / Linux:** command line only. Build it (below), then
+
+    sudo ./build/Vestige --out ./report
 
 Options:
 
@@ -38,7 +49,7 @@ Options:
     --list         list the checks for this system
     --no-pause     don't wait for Enter at the end (Windows)
 
-If a check ever crashes on a weird system, the scanner prints which one and you can rerun with `--skip thatcheck`.
+If a check ever crashes on a weird system, the scanner says which one. In the window you get a dialog that offers to scan again without that check. On the command line, rerun with `--skip thatcheck`.
 
 ## What it checks on Windows
 
@@ -104,7 +115,7 @@ Smaller set, same idea: agent flags on the game command, `DYLD_INSERT_LIBRARIES`
 
 ## Build it yourself
 
-You need CMake and a C++17 compiler.
+You need CMake and a C++17 compiler. Nothing else to install: the window uses [Dear ImGui](https://github.com/ocornut/imgui) (Win32 + DirectX 11), which is included in `third_party/imgui` and only built on Windows.
 
     cmake -S . -B build
     cmake --build build
@@ -114,7 +125,7 @@ Windows exe from Linux or macOS (this is how the release exe is built):
     cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-cross.cmake
     cmake --build build
 
-On Windows itself, MinGW works with `-G "MinGW Makefiles"`. Visual Studio should work too but is not tested.
+The Windows exe is statically linked, so it is one file with no installer and no runtime. On Windows itself, MinGW works with `-G "MinGW Makefiles"`. Visual Studio should work too but is not tested.
 
 ## Signatures
 
@@ -136,7 +147,7 @@ Being honest about the limits matters more than a long feature list.
 
 - `tests/linux_selftest.sh` fakes a cheated Java process on Linux and checks the scanner catches it.
 - `tests/fakegame.cpp` is built as `javaw.exe` for the Windows test. It creates injection artifacts inside its own process only (an image in private memory, a thread that starts there, a cheat-named DLL loaded and one unloaded) so the in-game checks have something to find. It does nothing to any other program.
-- CI builds all three systems and runs the tests on each.
+- CI builds all three systems and runs the tests on each. The tests use the command line, so the window itself is not covered by CI.
 
 ## License
 

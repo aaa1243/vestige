@@ -1,4 +1,4 @@
-# Extra signatures for ForensicScanner. Use with:  ForensicScanner.exe --sigs signatures.txt
+# Extra signatures for Vestige. Use with:  Vestige.exe --sigs signatures.txt
 # One per line:  type|value|label     Lines starting with # are ignored.
 #
 #   name     file or process name of a known cheat or tool (short names only match whole words)

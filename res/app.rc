@@ -1,2 +1,3 @@
-// Embeds the manifest that makes Windows ask for administrator rights.
+// Embeds the manifest that makes Windows ask for administrator rights and
+// marks the GUI as DPI aware.
 1 24 "app.manifest"

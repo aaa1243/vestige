@@ -17,7 +17,7 @@ jobs:
       - name: Build
         run: cmake -S . -B build && cmake --build build -j4
       - name: Self-test (fake cheated game)
-        run: sudo bash tests/linux_selftest.sh build/ForensicScanner
+        run: sudo bash tests/linux_selftest.sh build/Vestige
 
   macos:
     runs-on: macos-latest
@@ -31,7 +31,7 @@ jobs:
           echo 'int sleep(unsigned); int main(void){ sleep(120); return 0; }' | cc -x c - -o /tmp/fakegame/java
           /tmp/fakegame/java -javaagent:/tmp/vape.jar &
           sleep 2
-          sudo ./build/ForensicScanner --json out.json
+          sudo ./build/Vestige --json out.json
           python3 tests/check_run.py out.json game_cmdline:DETECTION game_cmdline:WARNING
 
   # The exe that gets released. Cross-compiled with MinGW, statically linked,
@@ -50,13 +50,13 @@ jobs:
         with:
           name: windows-build
           path: |
-            build/ForensicScanner.exe
+            build/Vestige.exe
             build/javaw.exe
       - name: Publish release (only on version tags)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/ForensicScanner.exe
+          files: build/Vestige.exe
 
   # Runs that exe on real Windows against a fake game that makes injection
   # artifacts inside its own process (tests/fakegame.cpp).
@@ -76,7 +76,7 @@ jobs:
           Start-Process "$env:TEMP\Slinky.exe" -ArgumentList '/c','ping -n 120 127.0.0.1 >nul' -WindowStyle Hidden
           Start-Process .\build\javaw.exe -ArgumentList 'net.minecraft.client.main.Main','120' -WindowStyle Hidden
           Start-Sleep -Seconds 6
-          .\build\ForensicScanner.exe --no-pause --json out.json --html out.html
+          .\build\Vestige.exe --no-pause --json out.json --html out.html
           python tests\check_run.py out.json `
             running_processes:DETECTION `
             "game_modules:DETECTION:Injected program image" `

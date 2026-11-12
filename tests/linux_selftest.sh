@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Fakes a "cheated" Java game on Linux and checks the scanner catches it.
 # Harmless: the fake game is a sleeping Python process named java.
-#   usage: sudo bash tests/linux_selftest.sh [path-to-ForensicScanner]
+#   usage: sudo bash tests/linux_selftest.sh [path-to-Vestige]
 set -euo pipefail
 cd "$(dirname "$0")/.."
-BIN="${1:-build/ForensicScanner}"
+BIN="${1:-build/Vestige}"
 W=$(mktemp -d)
 cat > "$W/fake.py" <<'PY'
 import mmap, os, sys, time
