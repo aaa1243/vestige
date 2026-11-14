@@ -47,6 +47,8 @@ name|gsautoclicker|GS Auto Clicker
 
 # ---- generic words (leads only) ----
 weak|autoclick|
+weak|psexec|
+weak|pssuspend|
 weak|auto-click|
 weak|clicker|
 weak|aimbot|

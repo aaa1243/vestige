@@ -69,6 +69,7 @@ These look inside the running `javaw.exe`.
 | `game_strings` | Known cheat class paths in the game's memory |
 | `game_load_times` | The time every DLL was loaded. Anything unsigned that showed up minutes after the game started stands out |
 | `screen_windows` | Streamproof windows (hidden from capture) and click-through overlays on top of the game |
+| `game_network` | Where the game is connected. Flags a connection to another program on the same PC (how proxy cheats work) and lists the remote addresses so you can compare them with your server |
 
 ### Was it injected earlier this session? (Boot)
 
@@ -96,6 +97,11 @@ Injection that already finished, or a game that was restarted, leaves no trace i
 | `usn_journal` | Journal deleted or recreated this boot, deleted prefetch files, cheat files created/renamed/deleted, exe/dll/jar renamed to another extension, mod jars deleted, programs deleted from user folders |
 | `file_signatures` | Known cheat files in user folders by name, SHA-256 and content |
 | `browser_history` | Cheat sites in browser history (only matches are shown) |
+| `temp_traces` | JNativeHook in Temp (Java autoclickers unpack it there), programs run straight out of an archive, unsigned programs in Temp changed this boot |
+| `recent_items` | Cheat names in Recent items, what was opened this boot, an emptied Recent folder, and commands in PowerShell history that clear logs, stop services or delete the journal |
+| `hidden_programs` | Programs saved under another extension or with none (a real program header in a .png or .txt), hidden Unicode characters in file names, programs stored in alternate data streams |
+| `mouse_macros` | Macro and settings files of mouse software (Logitech, Razer, Roccat, Corsair, Glorious, Bloody, X-Mouse and more) changed this boot, Razer turbo mode, macro tools running |
+| `drives` | USB and virtual drives connected or removed this boot, and FAT32 / exFAT drives that keep no journal |
 
 ### Is the evidence intact? (Integrity)
 
@@ -103,8 +109,10 @@ Injection that already finished, or a game that was restarted, leaves no trace i
 |---|---|
 | `integrity_boot` | Boot time, a restart right before the SS, explorer restarted mid-game, test signing, driver enforcement off, HVCI, Secure Boot |
 | `integrity_services` | SysMain, DPS, PcaSvc, EventLog, Dnscache, BAM and others stopped, disabled or restarted after boot |
+| `service_threads` | Recording services that still show as running but have suspended threads, so they record nothing |
 | `integrity_logs` | Security or other logs cleared (1102, 104), USN journal deleted (3079), clock changed by more than 5 minutes, recording services disabled this boot |
 | `integrity_tamper` | MiniNt key, DisallowRun lists, Task Manager / regedit / cmd disabled, hosts file changed, Recycle Bin emptied |
+| `integrity_policies` | PCA turned off by policy, drives hidden from Explorer, Recent tracking off, prefetch files marked hidden or encrypted, programs from user folders in the logon startup logs |
 | `drivers` | Known abusable drivers loaded, unsigned drivers, drivers registered from user folders |
 | `autoruns`, `scheduled_tasks` | Run keys, Startup folder, WMI consumers, tasks that run hidden scripts |
 | `hardware` | DMA cards (Xilinx IDs), kmbox / fuser style names, Arduino-type boards |

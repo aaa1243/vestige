@@ -47,7 +47,7 @@ if(WIN32)
     _WIN32_WINNT=0x0A00 _CRT_SECURE_NO_WARNINGS)
   target_link_libraries(Vestige PRIVATE
     psapi wintrust crypt32 advapi32 setupapi wevtapi ole32 oleaut32 wbemuuid
-    shell32 user32 version dnsapi)
+    shell32 user32 version dnsapi iphlpapi ws2_32)
   if(MSVC)
     target_compile_options(Vestige PRIVATE /W3 /EHsc /utf-8)
     set_property(TARGET Vestige PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
