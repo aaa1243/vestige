@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "../core.hpp"
+#include "../lag_names.hpp"
 #include "../posix_util.hpp"
 #include "../util.hpp"
 
@@ -322,6 +323,73 @@ SCAN_CHECK(500, launch_items, Scope::OutOfInstance, "Launch agents and daemons t
                 ctx.add(Severity::Integrity, "Launch item changed this boot: " + f, "Modified " + fmt_time(mt) + ".", path, Scope::Boot);
         }
     ctx.add(Severity::Integrity, "Launch items checked", strf("%zu plist files.", count), "", Scope::None);
+}
+
+// ---------------------------------------------------------------------------
+// Fake lag on a Mac is done with dummynet, the packet shaper built into macOS.
+// Apple's Network Link Conditioner (a free developer tool) puts a delay, a
+// loss rate or a speed cap on every connection with one switch.
+SCAN_CHECK(430, lag_tools, Scope::Boot, "Fake lag: Network Link Conditioner and dummynet delay or packet loss") {
+    if (ctx.admin) {
+        std::vector<std::string> pipes;
+        bool delay = false, loss = false, cap = false;
+        for (const std::string& raw : split(run_cmd("/usr/sbin/dnctl list"), '\n')) {
+            std::string line = trim(raw);
+            std::vector<std::string> w;
+            for (const std::string& t : split(line, ' '))
+                if (!t.empty()) w.push_back(lower(t));
+            if (w.empty()) continue;
+            bool pipe = w[0].size() > 1 && w[0].back() == ':' && isdigit(static_cast<unsigned char>(w[0][0]));
+            bool rated = false, lagged = false, lossy = false;
+            for (size_t i = 1; i < w.size(); ++i) {
+                double prev = atof(w[i - 1].c_str());
+                if (w[i] == "ms" && prev > 0) lagged = true;
+                if ((w[i] == "kbit/s" || w[i] == "mbit/s" || w[i] == "bit/s") && prev > 0) rated = true;
+                if (ends_with(w[i - 1], "plr") && atof(w[i].c_str()) > 0) lossy = true;
+            }
+            if (!pipe && !lossy) continue;
+            delay = delay || lagged;
+            loss = loss || lossy;
+            cap = cap || rated;
+            if (pipes.size() < 12) pipes.push_back(line);
+        }
+        if (delay || loss)
+            ctx.add(Severity::Detection,
+                    std::string("Network traffic is being ") + (delay && loss ? "delayed and dropped" : delay ? "delayed" : "dropped") + " on purpose right now",
+                    "dummynet pipes are active with an added delay or packet loss rate. That is what Network Link Conditioner "
+                    "does when it is switched on, and it makes the player lag for everyone else.",
+                    join(pipes, "\n"));
+        else if (cap)
+            ctx.add(Severity::Warning, "Network speed is capped by dummynet",
+                    "A dummynet pipe limits how fast this Mac can send or receive. Network Link Conditioner's slow profiles "
+                    "do this. A low cap makes the game lag.",
+                    join(pipes, "\n"));
+    } else {
+        ctx.note("run with sudo to see dummynet pipes (Network Link Conditioner)");
+    }
+
+    std::vector<std::string> spots = {"/Library/PreferencePanes/Network Link Conditioner.prefPane"};
+    for (const std::string& home : user_homes()) spots.push_back(home + "/Library/PreferencePanes/Network Link Conditioner.prefPane");
+    for (const std::string& p : spots) {
+        if (!is_dir(p)) continue;
+        double t = file_mtime(p);
+        bool since = ctx.since_boot(t);
+        ctx.add(since ? Severity::Warning : Severity::Integrity, "Network Link Conditioner is installed",
+                "Apple's tool for faking a bad connection (delay, packet loss, speed caps). It is meant for app developers. "
+                "Installed or changed " + fmt_time(t) + ". If it is switched on during the scan, the dummynet result above shows it.",
+                p, since ? Scope::Boot : Scope::OutOfInstance);
+    }
+
+    // The program's own name only ("comm" is the executable path).
+    std::set<std::string> seen;
+    for (const std::string& raw : split(run_cmd("/bin/ps -axww -o pid=,comm="), '\n')) {
+        std::string line = trim(raw);
+        size_t sp = line.find(' ');
+        if (sp == std::string::npos) continue;
+        const LagTool* t = match_lag_tool(lower(base_name(trim(line.substr(sp + 1)))));
+        if (t && seen.insert(t->label).second)
+            ctx.add(t->sev, std::string(t->label) + " is running", t->what, "PID " + cut(line, 300));
+    }
 }
 
 }  // namespace scan

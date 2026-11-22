@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "../core.hpp"
+#include "../lag_names.hpp"
 #include "../posix_util.hpp"
 #include "../util.hpp"
 
@@ -322,6 +323,79 @@ SCAN_CHECK(510, kernel_state, Scope::None, "Tainted kernel and out-of-tree modul
                 ctx.add(Severity::Detection, "Kernel module named like a known cheat: " + name,
                         "Matched: " + join(strong) + ".", line);
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Fake lag on Linux: netem (part of tc) adds delay and packet loss to a
+// network card, and a firewall rule can drop a random share of packets.
+SCAN_CHECK(520, lag_tools, Scope::Boot, "Fake lag: netem delay or loss, speed caps, random packet drops, lag tools running") {
+    std::string tc_bin;
+    for (const char* p : {"/usr/sbin/tc", "/sbin/tc", "/usr/bin/tc", "/bin/tc"})
+        if (file_exists(p)) { tc_bin = p; break; }
+    if (tc_bin.empty()) {
+        ctx.note("tc is not installed, so netem delay could not be checked");
+    } else {
+        for (const std::string& raw : split(run_cmd(tc_bin + " qdisc show"), '\n')) {
+            std::string line = trim(raw), l = lower(line);
+            std::string dev;
+            size_t d = l.find(" dev ");
+            if (d != std::string::npos) dev = line.substr(d + 5, line.find(' ', d + 5) - (d + 5));
+            if (dev == "lo") continue;
+            if (contains(l, "qdisc netem")) {
+                bool bad = contains(l, " delay ") || contains(l, " loss ") || contains(l, " duplicate ") ||
+                           contains(l, " reorder ") || contains(l, " corrupt ") || contains(l, " rate ");
+                ctx.add(bad ? Severity::Detection : Severity::Warning, "netem is set on network device " + dev,
+                        "netem is a Linux tool for faking a bad network: it adds delay, packet loss and reordering to "
+                        "everything the device sends. Developers use it for testing; on a gaming PC it is fake lag.",
+                        line);
+            } else if (contains(l, "qdisc tbf") || (contains(l, "qdisc htb") && !contains(l, "dev ifb"))) {
+                ctx.add(Severity::Warning, "Traffic on " + dev + " is speed capped",
+                        "A traffic shaper (tbf or htb) limits how fast this device can send. A low cap makes the game lag. "
+                        "Some routers and VPN setups use shapers for real reasons.",
+                        line);
+            }
+        }
+    }
+
+    if (ctx.admin) {
+        std::string rules;
+        std::string tables;
+        if (read_file("/proc/net/ip_tables_names", tables, 4096) && !trim(tables).empty())   // tables already exist, so nothing gets loaded
+            for (const char* p : {"/usr/sbin/iptables-save", "/sbin/iptables-save"})
+                if (file_exists(p)) { rules += run_cmd(p); break; }
+        for (const char* p : {"/usr/sbin/nft", "/sbin/nft", "/usr/bin/nft"})
+            if (file_exists(p)) { rules += run_cmd(std::string(p) + " list ruleset"); break; }
+        std::vector<std::string> hits;
+        for (const std::string& raw : split(rules, '\n')) {
+            std::string l = lower(raw);
+            bool random = contains(l, "statistic") || contains(l, "numgen random");
+            if (random && (contains(l, "drop") || contains(l, "reject")) && hits.size() < 10) hits.push_back(trim(raw));
+        }
+        if (!hits.empty())
+            ctx.add(Severity::Detection, "A firewall rule drops a random share of packets",
+                    "Dropping packets at random is fake packet loss: the player rubber-bands and is hard to hit. "
+                    "Normal firewalls do not do this.",
+                    join(hits, "\n"));
+    } else {
+        ctx.note("run with sudo to check firewall rules for random packet drops");
+    }
+
+    std::string self = std::to_string(getpid());
+    std::set<std::string> seen;
+    for (const std::string& pid : list_dir("/proc")) {
+        if (!all_digits(pid) || pid == self) continue;
+        std::string raw;
+        if (!read_file("/proc/" + pid + "/cmdline", raw, 1 << 16) || raw.empty()) continue;
+        // Only the program's own name, and the .exe a Wine process runs. Words
+        // in other arguments (a file being edited, say) do not count.
+        std::vector<std::string> args = split(raw, '\0');
+        const LagTool* t = match_lag_tool(lower(base_name(args[0])));
+        for (size_t i = 1; !t && i < args.size() && i < 4; ++i)
+            if (ends_with(lower(args[i]), ".exe")) t = match_lag_tool(lower(base_name(args[i])));
+        std::replace(raw.begin(), raw.end(), '\0', ' ');
+        if (t && seen.insert(t->label).second)
+            ctx.add(t->sev, std::string(t->label) + " is running", t->what, "PID " + pid + ": " + cut(trim(raw), 300));
     }
 }
 

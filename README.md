@@ -117,9 +117,21 @@ Injection that already finished, or a game that was restarted, leaves no trace i
 | `autoruns`, `scheduled_tasks` | Run keys, Startup folder, WMI consumers, tasks that run hidden scripts |
 | `hardware` | DMA cards (Xilinx IDs), kmbox / fuser style names, Arduino-type boards |
 
+### Fake lag and lag switches
+
+| Check | What it finds |
+|---|---|
+| `lag_tools` | clumsy, NetLimiter, NetBalancer and other packet tools running. The WinDivert packet driver loaded (it stays loaded until reboot, so it shows a tool ran this boot even if it was closed), which program is using it right now, and where it was installed from (event 7045) with the programs in that folder. NetLimiter rules that name the game. DPI bypass tools that also use WinDivert (GoodbyeDPI, zapret) are shown as Integrity |
+| `lag_firewall` | Outbound firewall rules that block the game or port 25565, switched on or off. Rules for the game added, changed or deleted since boot and which program changed them, because toggling a block rule is how a firewall lag switch works. Inbound Java rules from Windows' own prompt are ignored |
+| `lag_connection` | QoS policies that throttle the game's or all traffic (priority-only policies are ignored), a network card forced to 10 Mbps or half duplex, Ethernet running at 10 Mbps, a very low MTU, and the network disconnecting 3+ times while the game was open (a cable lag switch, a hotkey that turns the adapter off, or bad Wi-Fi) |
+
+clumsy and lag-switch names are also in the built-in signatures, so BAM, Prefetch, the USN journal and the other history checks report them after they are closed and deleted.
+
 ## macOS and Linux
 
 Smaller set, same idea: agent flags on the game command, `DYLD_INSERT_LIBRARIES` / `LD_PRELOAD` / Java option injection, libraries loaded from temp or user folders or deleted after loading, fileless libraries in memory (Linux), a tracer attached (Linux), SIP and Gatekeeper state (macOS), download quarantine records (macOS), shell history, launch agents / cron / autostart, game logs, file signatures and browser history.
+
+Fake lag on both: lag tools running by name. macOS: active dummynet pipes with a delay, packet loss or speed cap (what Network Link Conditioner does when it is switched on) and Network Link Conditioner being installed. Linux: netem delay or loss and tbf/htb speed caps on a network device, and firewall rules that drop a random share of packets. The dummynet and firewall parts need sudo.
 
 ## Build it yourself
 
@@ -148,6 +160,7 @@ Being honest about the limits matters more than a long feature list.
 - No image recognition. It cannot look at an overlay and tell you it is a cheat menu. It tells you an overlay or a capture-hidden window exists and who owns it.
 - Injection that happened before the game was restarted is only visible through logs, crash reports, prefetch and the journal. If none of those recorded it, it is gone.
 - DMA cards with spoofed IDs look like a network card and are not caught.
+- Fake lag that lives outside the PC is not visible: a lag switch on the router or a second network card, a throttled phone hotspot, or a cheat client's built-in fake lag (that one is a client cheat and is caught or missed like any other). The drops-while-playing check is a lead, since bad Wi-Fi looks the same.
 - No alt or account checks, and it never reads launcher accounts, tokens or Discord.
 - Name-based matches can be coincidence. Unsigned-DLL warnings skip files whose path looks like a normal game library (lwjgl, jna and so on), so a cheat named like one of those gets a lower rating there. The memory checks do not use names.
 
