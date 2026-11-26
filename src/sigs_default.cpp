@@ -44,6 +44,11 @@ name|opautoclicker|OP Auto Clicker
 name|op auto clicker|OP Auto Clicker
 name|gs auto clicker|GS Auto Clicker
 name|gsautoclicker|GS Auto Clicker
+name|clumsy|clumsy (fake lag)
+name|lagswitch|Lag switch
+name|lag switch|Lag switch
+name|fakelag|Fake lag tool
+name|pingspoof|Ping spoofer
 
 # ---- generic words (leads only) ----
 weak|autoclick|
@@ -94,6 +99,7 @@ domain|impactclient.net|Impact
 domain|aristois.net|Aristois
 domain|sigmaclient.info|Sigma
 domain|unknowncheats.me|UnknownCheats forum
+domain|jagt.github.io|clumsy (fake lag) download page
 
 # ---- drivers used to load kernel cheats ----
 driver|iqvw64e.sys|Intel driver abused by kdmapper
